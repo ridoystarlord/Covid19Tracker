@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import com.ridoy.covid19tracker.API.CoronaAPI;
 import com.ridoy.covid19tracker.API.CountryData;
+import com.ridoy.covid19tracker.API.UserCountry;
 import com.ridoy.covid19tracker.databinding.ActivityMainBinding;
 
 import org.eazegraph.lib.charts.PieChart;
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
     private List<CountryData> countryDatalist;
     ActivityMainBinding binding;
     private PieChart chart;
-
+    String country;
     ProgressDialog dialog;
 
     @Override
@@ -44,47 +45,64 @@ public class MainActivity extends AppCompatActivity {
         dialog.setMessage("Loading...");
         dialog.setCancelable(false);
         dialog.show();
-        CoronaAPI.getApi().getCountryData().enqueue(new Callback<List<CountryData>>() {
+
+        CoronaAPI.getCountryApi().getIpCountryData().enqueue(new Callback<UserCountry>() {
             @Override
-            public void onResponse(Call<List<CountryData>> call, Response<List<CountryData>> response) {
-                countryDatalist.addAll(response.body());
-                for (int i = 0; i < countryDatalist.size(); i++) {
-                    if (countryDatalist.get(i).getCountry().equals("Bangladesh")) {
-                        int confirm = Integer.parseInt(countryDatalist.get(i).getCases());
-                        int active = Integer.parseInt(countryDatalist.get(i).getActive());
-                        int recovered = Integer.parseInt(countryDatalist.get(i).getRecovered());
-                        int death = Integer.parseInt(countryDatalist.get(i).getDeaths());
-                        int todaydeath = Integer.parseInt(countryDatalist.get(i).getTodayDeaths());
-                        int todayconfirm = Integer.parseInt(countryDatalist.get(i).getTodayCases());
-                        int todayrecovered = Integer.parseInt(countryDatalist.get(i).getTodayRecovered());
-                        int totaltest = Integer.parseInt(countryDatalist.get(i).getTests());
+            public void onResponse(Call<UserCountry> call, Response<UserCountry> response) {
+                country=response.body().getCountry();
+                binding.countryName.setText(country);
+                CoronaAPI.getApi().getCountryData().enqueue(new Callback<List<CountryData>>() {
+                    @Override
+                    public void onResponse(Call<List<CountryData>> call, Response<List<CountryData>> response) {
+                        countryDatalist.addAll(response.body());
+                        for (int i = 0; i < countryDatalist.size(); i++) {
+                            if (countryDatalist.get(i).getCountry().equals(country)) {
+                                int confirm = Integer.parseInt(countryDatalist.get(i).getCases());
+                                int active = Integer.parseInt(countryDatalist.get(i).getActive());
+                                int recovered = Integer.parseInt(countryDatalist.get(i).getRecovered());
+                                int death = Integer.parseInt(countryDatalist.get(i).getDeaths());
+                                int todaydeath = Integer.parseInt(countryDatalist.get(i).getTodayDeaths());
+                                int todayconfirm = Integer.parseInt(countryDatalist.get(i).getTodayCases());
+                                int todayrecovered = Integer.parseInt(countryDatalist.get(i).getTodayRecovered());
+                                int totaltest = Integer.parseInt(countryDatalist.get(i).getTests());
 
-                        binding.totalconfirm.setText(NumberFormat.getInstance().format(confirm));
-                        binding.totalactive.setText(NumberFormat.getInstance().format(active));
-                        binding.totalrecovered.setText(NumberFormat.getInstance().format(recovered));
-                        binding.totaldeath.setText(NumberFormat.getInstance().format(death));
+                                binding.totalconfirm.setText(NumberFormat.getInstance().format(confirm));
+                                binding.totalactive.setText(NumberFormat.getInstance().format(active));
+                                binding.totalrecovered.setText(NumberFormat.getInstance().format(recovered));
+                                binding.totaldeath.setText(NumberFormat.getInstance().format(death));
 
-                        binding.todaydeath.setText("+ "+NumberFormat.getInstance().format(todaydeath));
-                        binding.todayconfirm.setText("+ "+NumberFormat.getInstance().format(todayconfirm));
-                        binding.todayrecovered.setText("+ "+NumberFormat.getInstance().format(todayrecovered));
-                        binding.totaltests.setText(NumberFormat.getInstance().format(totaltest));
+                                binding.todaydeath.setText("+ "+NumberFormat.getInstance().format(todaydeath));
+                                binding.todayconfirm.setText("+ "+NumberFormat.getInstance().format(todayconfirm));
+                                binding.todayrecovered.setText("+ "+NumberFormat.getInstance().format(todayrecovered));
+                                binding.totaltests.setText(NumberFormat.getInstance().format(totaltest));
 
-                        setDate(countryDatalist.get(i).getUpdated());
+                                setDate(countryDatalist.get(i).getUpdated());
 
-                        chart.addPieSlice(new PieModel("Confirm", confirm, getResources().getColor(R.color.yellow)));
-                        chart.addPieSlice(new PieModel("Active", active, getResources().getColor(R.color.blue_pie)));
-                        chart.addPieSlice(new PieModel("Recovered", recovered, getResources().getColor(R.color.green_pie)));
-                        chart.addPieSlice(new PieModel("Death", death, getResources().getColor(R.color.red_pie)));
-                        dialog.dismiss();
+                                chart.addPieSlice(new PieModel("Confirm", confirm, getResources().getColor(R.color.yellow)));
+                                chart.addPieSlice(new PieModel("Active", active, getResources().getColor(R.color.blue_pie)));
+                                chart.addPieSlice(new PieModel("Recovered", recovered, getResources().getColor(R.color.green_pie)));
+                                chart.addPieSlice(new PieModel("Death", death, getResources().getColor(R.color.red_pie)));
+                                dialog.dismiss();
+                            }else {
+                                setDate(countryDatalist.get(i).getUpdated());
+                                dialog.dismiss();
+                            }
+                        }
                     }
-                }
+
+                    @Override
+                    public void onFailure(Call<List<CountryData>> call, Throwable t) {
+                        Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
-            public void onFailure(Call<List<CountryData>> call, Throwable t) {
-                Toast.makeText(MainActivity.this, "Error: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            public void onFailure(Call<UserCountry> call, Throwable t) {
+                Toast.makeText(MainActivity.this, t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     private void setDate(String updated) {
